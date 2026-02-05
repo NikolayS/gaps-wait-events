@@ -279,7 +279,7 @@
         <p class="subtitle">Analysis and improvement proposals for PostgreSQL wait event instrumentation</p>
     </div>
 
-    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+    <h2>────────────────────────────────────</h2>
 
     <h2>What Are Wait Events?</h2>
     
@@ -307,7 +307,7 @@
     
     <p>But <code>NULL</code> doesn't always mean "CPU working" — it can also mean <strong>"not instrumented yet."</strong></p>
 
-    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+    <h2>────────────────────────────────────</h2>
 
     <h2>The Real Problem</h2>
     
@@ -321,7 +321,7 @@
 
     <p>This leads to misdiagnosis during incidents. A connection storm caused by slow LDAP authentication appears as "high CPU load" when it's actually network/auth waits that lack instrumentation.</p>
 
-    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+    <h2>────────────────────────────────────</h2>
 
     <h2>Gap Categories</h2>
 
@@ -373,7 +373,7 @@
         <p><em>Status: Rejected — use profiling tools for CPU analysis, not wait events.</em></p>
     </div>
 
-    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+    <h2>────────────────────────────────────</h2>
 
     <h2 id="recently-added"><span class="done">✓</span> Recently Added Wait Events</h2>
     
@@ -429,7 +429,7 @@
         <p>Commit: <a href="https://github.com/postgres/postgres/commit/0013ba29">0013ba29</a></p>
     </div>
 
-    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+    <h2>────────────────────────────────────</h2>
 
     <h2>Observer Effect</h2>
     
@@ -441,7 +441,7 @@
         <p>The very act of observing (logging) changes what's being observed, and the gap in instrumentation makes it invisible.</p>
     </div>
 
-    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+    <h2>────────────────────────────────────</h2>
 
     <h2>GSoC 2026</h2>
     
@@ -452,7 +452,7 @@
     
     <p>If you're a student interested in PostgreSQL internals and observability, this is a great opportunity to contribute to a critical area of database monitoring.</p>
 
-    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+    <h2>────────────────────────────────────</h2>
 
     <h2>Resources</h2>
     
@@ -462,7 +462,7 @@
     </ul>
 
     <footer>
-        <p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
+        <p>────────────────────────────────────</p>
         
         <div style="margin: 1.5em 0;">
             <a href="https://github.com/NikolayS/gaps-wait-events">View source</a> · 
