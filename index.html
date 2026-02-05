@@ -276,8 +276,8 @@
     <p>An additional challenge: logging itself can cause observer effects that confuse wait event analysis.</p>
     
     <div class="highlight">
-        <p><strong>Example:</strong> <code>log_min_duration_statement</code> with high TPS on non-fast disks</p>
-        <p>When logging is enabled, backends spend time writing to disk for every slow query. This I/O lacks a wait event, so it appears as NULL → "CPU" in monitoring tools.</p>
+        <p><strong>Example:</strong> <code>log_min_duration_statement=0</code> with high TPS on non-fast disks</p>
+        <p>When logging all statements (duration=0), backends spend time writing to disk for every single query. This I/O lacks a wait event, so it appears as NULL → "CPU" in monitoring tools.</p>
         <p>The very act of observing (logging) changes what's being observed, and the gap in instrumentation makes it invisible.</p>
     </div>
 
