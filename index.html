@@ -236,7 +236,7 @@
     <div class="gap-category">
         <h3><span class="warning">■</span> I/O Operations (Required — 7 locations)</h3>
         <ul>
-            <li><span style="text-decoration: line-through; opacity: 0.6;"><strong>COPY FROM/TO PROGRAM:</strong></span> <span class="done">✓ FIXED (2025-02-04)</span> — Now has <code>COPY_FROM_READ</code> and <code>COPY_TO_WRITE</code> wait events</li>
+            <li><span style="text-decoration: line-through; opacity: 0.6;"><strong>COPY FROM/TO PROGRAM:</strong></span> <span class="done">✓ FIXED (2026-02-03)</span> — See <a href="#recently-added">Recently Added</a> section</li>
             <li><strong>File operations:</strong> <code>unlink()</code> for table files, <code>fsync()</code> for signal files</li>
             <li><strong>Dynamic shared memory:</strong> <code>fstat()</code> operations in parallel query</li>
         </ul>
@@ -258,16 +258,58 @@
 
     <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
 
-    <h2><span class="done">✓</span> Recently Closed (2025-02-04)</h2>
+    <h2 id="recently-added"><span class="done">✓</span> Recently Added Wait Events</h2>
     
     <div class="highlight done">
-        <p><strong>COPY FROM/TO pipe/file/program</strong> — Now has proper wait event instrumentation!</p>
-        <p>New wait events:</p>
+        <p><strong>2026-02-03 — COPY FROM/TO pipe/file/program</strong> <em>(part of this gap analysis project)</em></p>
         <ul>
             <li><code>COPY_FROM_READ</code> — "Waiting to read data from a pipe, a file or a program during COPY FROM"</li>
             <li><code>COPY_TO_WRITE</code> — "Waiting to write data to a pipe, a file or a program during COPY TO"</li>
         </ul>
-        <p>Commit: <a href="https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5">e05a24c</a> (2025-02-04)</p>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5">e05a24c</a></p>
+    </div>
+
+    <div class="highlight done">
+        <p><strong>2025-12-09 — Group Commit Delay</strong></p>
+        <ul>
+            <li><code>COMMIT_DELAY</code> — "Waiting for commit delay before WAL flush"</li>
+        </ul>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/3cb5808b">3cb5808b</a></p>
+    </div>
+
+    <div class="highlight done">
+        <p><strong>2025-11-05 — LSN Waiting Infrastructure</strong></p>
+        <ul>
+            <li><code>WAIT_FOR_WAL_FLUSH</code> — "Waiting for WAL flush to reach a target LSN on a primary"</li>
+            <li><code>WAIT_FOR_WAL_REPLAY</code> — "Waiting for WAL replay to reach a target LSN on a standby"</li>
+            <li><code>WaitLSN</code> — LWLock for Wait-for-LSN state</li>
+        </ul>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/3b4e53a0">3b4e53a0</a></p>
+    </div>
+
+    <div class="highlight done">
+        <p><strong>2025-05-29 — Async I/O (io_uring)</strong></p>
+        <ul>
+            <li><code>AioUringCompletion</code> — LWLock for AIO uring completion</li>
+        </ul>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/c3623703">c3623703</a></p>
+    </div>
+
+    <div class="highlight done">
+        <p><strong>2024-01-02 — WAL Summarizer</strong></p>
+        <ul>
+            <li><code>WALSummarizerLock</code> — LWLock for WAL summarizer</li>
+        </ul>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/5c430f9d">5c430f9d</a></p>
+    </div>
+
+    <div class="highlight done">
+        <p><strong>2023-10-13 — Checkpoint Delay</strong></p>
+        <ul>
+            <li><code>CHECKPOINT_DELAY_COMPLETE</code> — "Waiting for a backend that blocks a checkpoint from completing"</li>
+            <li><code>CHECKPOINT_DELAY_START</code> — "Waiting for a backend that blocks a checkpoint from starting"</li>
+        </ul>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/0013ba29">0013ba29</a></p>
     </div>
 
     <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
