@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>PostgreSQL Wait Events Coverage Gaps</title>
     <style>
         :root {
@@ -170,12 +171,39 @@
         
         @media (max-width: 600px) {
             body {
-                font-size: 12px;
-                padding: 1ch;
+                font-size: 13px;
+                padding: 1.5ch;
+                line-height: 1.5;
             }
             
             .stats {
                 grid-template-columns: 1fr;
+                gap: 1ch;
+            }
+            
+            .stat {
+                padding: 0.8em;
+            }
+            
+            pre {
+                font-size: 11px;
+                padding: 0.8em;
+            }
+            
+            h1 {
+                font-size: 1.3em;
+            }
+            
+            h2 {
+                font-size: 1.1em;
+            }
+            
+            .header pre {
+                font-size: 10px;
+            }
+            
+            ul, ol {
+                padding-left: 2ch;
             }
         }
     </style>
