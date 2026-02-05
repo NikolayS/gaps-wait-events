@@ -293,16 +293,16 @@
     
     <p>Many monitoring tools (AWS RDS Performance Insights, PASH Viewer, etc.) visualize <code>wait_event IS NULL</code> as green "CPU" time:</p>
     
-    <pre style="font-size: 11px;">
-┌────────────────────────────────────────┐
-│ Active Sessions (sampled every second) │
-│                                        │
-│ ████████████████ <- Database CPU       │
-│ ▓▓▓▓▓▓▓▓         <- I/O:DataFileRead  │
-│ ░░░░░░           <- Lock:relation     │
-│                                        │
-│ Legend: Green = "CPU" (NULL)          │
-└────────────────────────────────────────┘
+    <pre style="font-size: 10px; overflow-x: auto;">
+┌────────────────────────────────┐
+│ Active Sessions (sampled/s)    │
+│                                │
+│ ████████████ <- CPU (green)   │
+│ ▓▓▓▓▓▓       <- I/O (blue)    │
+│ ░░░░         <- Lock (orange) │
+│                                │
+│ Green = NULL wait_event        │
+└────────────────────────────────┘
     </pre>
     
     <p>But <code>NULL</code> doesn't always mean "CPU working" — it can also mean <strong>"not instrumented yet."</strong></p>
