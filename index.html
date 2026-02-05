@@ -213,7 +213,7 @@
             <div class="stat-label">Authentication<br>(Critical)</div>
         </div>
         <div class="stat">
-            <div class="stat-number warning">9</div>
+            <div class="stat-number warning">7</div>
             <div class="stat-label">I/O Operations<br>(Required)</div>
         </div>
     </div>
@@ -233,9 +233,9 @@
     </div>
 
     <div class="gap-category">
-        <h3><span class="warning">■</span> I/O Operations (Required — 9 locations)</h3>
+        <h3><span class="warning">■</span> I/O Operations (Required — 7 locations)</h3>
         <ul>
-            <li><strong>COPY FROM/TO PROGRAM:</strong> Pipe I/O with external commands — <code>fread()</code>/<code>fwrite()</code> blocks appear as CPU</li>
+            <li><span style="text-decoration: line-through; opacity: 0.6;"><strong>COPY FROM/TO PROGRAM:</strong></span> <span class="done">✓ FIXED (2025-02-04)</span> — Now has <code>COPY_FROM_READ</code> and <code>COPY_TO_WRITE</code> wait events</li>
             <li><strong>File operations:</strong> <code>unlink()</code> for table files, <code>fsync()</code> for signal files</li>
             <li><strong>Dynamic shared memory:</strong> <code>fstat()</code> operations in parallel query</li>
         </ul>
@@ -257,11 +257,16 @@
 
     <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
 
-    <h2><span class="done">✓</span> Recently Closed</h2>
+    <h2><span class="done">✓</span> Recently Closed (2025-02-04)</h2>
     
     <div class="highlight done">
-        <p><strong>Hash table searches in locking</strong> — Now has proper wait event instrumentation!</p>
-        <p>Commit: <a href="https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5">e05a24c</a></p>
+        <p><strong>COPY FROM/TO pipe/file/program</strong> — Now has proper wait event instrumentation!</p>
+        <p>New wait events:</p>
+        <ul>
+            <li><code>COPY_FROM_READ</code> — "Waiting to read data from a pipe, a file or a program during COPY FROM"</li>
+            <li><code>COPY_TO_WRITE</code> — "Waiting to write data to a pipe, a file or a program during COPY TO"</li>
+        </ul>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5">e05a24c</a> (2025-02-04)</p>
     </div>
 
     <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
