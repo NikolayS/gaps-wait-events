@@ -34,9 +34,12 @@
             width: 100%;
         }
         
+        body, h1, h2, h3, p, li, a, code, pre, .stat-number, .stat-label, footer {
+            font-size: 14px;
+        }
+        
         body {
             font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Ubuntu Mono", monospace;
-            font-size: 14px;
             line-height: 1.6;
             background: var(--bg);
             color: var(--fg);
@@ -53,18 +56,15 @@
         }
         
         h1 {
-            font-size: 1.5em;
             border-bottom: 2px solid var(--accent);
             padding-bottom: 0.5em;
         }
         
         h2 {
-            font-size: 1.2em;
             color: var(--accent);
         }
         
         h3 {
-            font-size: 1em;
             color: var(--fg);
         }
         
@@ -190,7 +190,6 @@
             padding-top: 2em;
             border-top: 1px solid var(--dim);
             color: var(--dim);
-            font-size: 0.9em;
         }
         
         @media (max-width: 600px) {
@@ -199,8 +198,11 @@
                 width: 100%;
             }
             
+            body, h1, h2, h3, p, li, a, code, pre, .stat-number, .stat-label {
+                font-size: 14px;
+            }
+            
             body {
-                font-size: 15px;
                 padding: 1ch;
                 line-height: 1.6;
                 max-width: 100%;
@@ -217,10 +219,6 @@
                 padding: 0.8em;
             }
             
-            .stat-number {
-                font-size: 1.5em;
-            }
-            
             pre {
                 font-size: 10px;
                 padding: 0.6em;
@@ -230,21 +228,8 @@
                 -webkit-overflow-scrolling: touch;
             }
             
-            h1 {
-                font-size: 1.3em;
-            }
-            
-            h2 {
-                font-size: 1.1em;
-                line-height: 1.3;
-            }
-            
-            h3 {
-                font-size: 1em;
-            }
-            
             .header pre, .header-art {
-                font-size: 10px;
+                font-size: 9px;
                 line-height: 1.2;
                 max-width: 100%;
                 overflow-x: auto;
