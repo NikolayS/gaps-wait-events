@@ -21,15 +21,30 @@
             box-sizing: border-box;
         }
         
+        * {
+            scrollbar-width: none;
+        }
+        
+        *::-webkit-scrollbar {
+            display: none;
+        }
+        
+        html {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        
         body {
             font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Ubuntu Mono", monospace;
             font-size: 14px;
             line-height: 1.6;
             background: var(--bg);
             color: var(--fg);
-            max-width: 80ch;
+            max-width: min(80ch, 100vw);
             margin: 0 auto;
             padding: 2ch;
+            overflow-x: clip;
+            word-wrap: break-word;
         }
         
         h1, h2, h3 {
@@ -69,11 +84,18 @@
         .header {
             text-align: center;
             margin: 3em 0;
+            max-width: 100%;
         }
         
         .header h1 {
             border: none;
             margin: 0;
+        }
+        
+        .header-art {
+            display: inline-block;
+            max-width: 100%;
+            overflow-x: auto;
         }
         
         .subtitle {
@@ -172,11 +194,17 @@
         }
         
         @media (max-width: 600px) {
+            html, body {
+                overflow-x: hidden;
+                width: 100%;
+            }
+            
             body {
                 font-size: 15px;
-                padding: 1.5ch;
+                padding: 1ch;
                 line-height: 1.6;
                 max-width: 100%;
+                box-sizing: border-box;
             }
             
             .stats {
@@ -215,9 +243,11 @@
                 font-size: 1em;
             }
             
-            .header pre {
-                font-size: 11px;
+            .header pre, .header-art {
+                font-size: 10px;
                 line-height: 1.2;
+                max-width: 100%;
+                overflow-x: auto;
             }
             
             ul, ol {
@@ -241,10 +271,10 @@
 </head>
 <body>
     <div class="header">
-        <pre>
-╔═══════════════════════════════════════════════════════════════════╗
-║         POSTGRESQL WAIT EVENTS COVERAGE GAPS                      ║
-╚═══════════════════════════════════════════════════════════════════╝
+        <pre class="header-art">
+╔════════════════════════════════════════╗
+║  POSTGRESQL WAIT EVENTS COVERAGE GAPS  ║
+╚════════════════════════════════════════╝
         </pre>
         <p class="subtitle">Analysis and improvement proposals for PostgreSQL wait event instrumentation</p>
     </div>
