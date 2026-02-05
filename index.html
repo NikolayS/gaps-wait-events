@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostgreSQL Wait Events Coverage Gaps</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --fg: #e0e0e0;
+            --accent: #66d9ef;
+            --dim: #75715e;
+            --success: #a6e22e;
+            --warning: #fd971f;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", "Ubuntu Mono", monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: var(--bg);
+            color: var(--fg);
+            max-width: 80ch;
+            margin: 0 auto;
+            padding: 2ch;
+        }
+        
+        h1, h2, h3 {
+            font-weight: normal;
+            margin: 2em 0 1em;
+        }
+        
+        h1 {
+            font-size: 1.5em;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 0.5em;
+        }
+        
+        h2 {
+            font-size: 1.2em;
+            color: var(--accent);
+        }
+        
+        h3 {
+            font-size: 1em;
+            color: var(--fg);
+        }
+        
+        p {
+            margin: 1em 0;
+        }
+        
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .header {
+            text-align: center;
+            margin: 3em 0;
+        }
+        
+        .header h1 {
+            border: none;
+            margin: 0;
+        }
+        
+        .subtitle {
+            color: var(--dim);
+            margin-top: 1em;
+        }
+        
+        pre, code {
+            font-family: inherit;
+            background: #2a2a2a;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+        }
+        
+        pre {
+            padding: 1em;
+            overflow-x: auto;
+            margin: 1em 0;
+        }
+        
+        ul, ol {
+            margin: 1em 0;
+            padding-left: 3ch;
+        }
+        
+        li {
+            margin: 0.5em 0;
+        }
+        
+        .highlight {
+            background: #2a2a2a;
+            border-left: 2px solid var(--accent);
+            padding: 1em 2ch;
+            margin: 1em 0;
+        }
+        
+        .done {
+            color: var(--success);
+        }
+        
+        .critical {
+            color: #f92672;
+        }
+        
+        .warning {
+            color: var(--warning);
+        }
+        
+        hr {
+            border: none;
+            border-top: 1px solid var(--dim);
+            margin: 2em 0;
+        }
+        
+        .gap-category {
+            margin: 2em 0;
+            padding: 1em;
+            background: #252525;
+        }
+        
+        .gap-category h3 {
+            margin-top: 0;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2ch;
+            margin: 2em 0;
+            text-align: center;
+        }
+        
+        .stat {
+            padding: 1em;
+            background: #252525;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            color: var(--dim);
+            font-size: 0.9em;
+        }
+        
+        footer {
+            margin-top: 4em;
+            padding-top: 2em;
+            border-top: 1px solid var(--dim);
+            color: var(--dim);
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                font-size: 12px;
+                padding: 1ch;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <pre>
+╔═══════════════════════════════════════════════════════════════════╗
+║         POSTGRESQL WAIT EVENTS COVERAGE GAPS                      ║
+╚═══════════════════════════════════════════════════════════════════╝
+        </pre>
+        <p class="subtitle">Analysis and improvement proposals for PostgreSQL wait event instrumentation</p>
+    </div>
+
+    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+
+    <h2>The Problem</h2>
+    
+    <p>Many PostgreSQL monitoring tools visualize <code>wait_event IS NULL</code> as "CPU" — often displayed in green. This convention originated from tools like RDS Performance Insights and PASH Viewer, and traces back to Oracle's approach.</p>
+    
+    <div class="highlight">
+        <p><strong>The issue:</strong> <code>NULL</code> doesn't mean "CPU working" — it means "not instrumented yet."</p>
+        <p>When a backend is stuck waiting on network I/O, external authentication, or other blocking operations without wait event coverage, monitoring tools incorrectly show it as CPU activity.</p>
+    </div>
+
+    <p>This leads to misdiagnosis during incidents. A connection storm caused by slow LDAP authentication appears as "high CPU load" when it's actually network/auth waits that lack instrumentation.</p>
+
+    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+
+    <h2>Gap Categories</h2>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-number critical">32</div>
+            <div class="stat-label">Authentication<br>(Critical)</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number warning">9</div>
+            <div class="stat-label">I/O Operations<br>(Required)</div>
+        </div>
+        <div class="stat">
+            <div class="stat-number">15</div>
+            <div class="stat-label">CPU Observability<br>(Optional)</div>
+        </div>
+    </div>
+
+    <div class="gap-category">
+        <h3><span class="critical">■</span> Authentication (Critical — 32 locations)</h3>
+        <p>Every authentication method has gaps that block logins without visibility:</p>
+        <ul>
+            <li><strong>LDAP:</strong> 12 operations — DNS SRV lookups, TLS handshakes, binds, searches</li>
+            <li><strong>Ident:</strong> 8 operations — DNS lookups, TCP connections to ident server</li>
+            <li><strong>PAM:</strong> 2 operations — black box external auth (can invoke LDAP, AD, scripts)</li>
+            <li><strong>RADIUS:</strong> 5 operations — UDP auth without proper wait events</li>
+            <li><strong>GSSAPI/Kerberos:</strong> 1 operation — KDC server contact</li>
+            <li><strong>DNS lookups:</strong> 3 in auth + connection logging when <code>log_hostname=on</code></li>
+        </ul>
+        <p><em>Impact: During auth storms, backends appear "busy with CPU" when they're actually waiting on external services.</em></p>
+    </div>
+
+    <div class="gap-category">
+        <h3><span class="warning">■</span> I/O Operations (Required — 9 locations)</h3>
+        <ul>
+            <li><strong>COPY FROM/TO PROGRAM:</strong> Pipe I/O with external commands — <code>fread()</code>/<code>fwrite()</code> blocks appear as CPU</li>
+            <li><strong>File operations:</strong> <code>unlink()</code> for table files, <code>fsync()</code> for signal files</li>
+            <li><strong>Dynamic shared memory:</strong> <code>fstat()</code> operations in parallel query</li>
+        </ul>
+    </div>
+
+    <div class="gap-category">
+        <h3>□ Compression (Optional — 7 locations)</h3>
+        <p>CPU-bound but useful for observability:</p>
+        <ul>
+            <li>Base backup compression: gzip, LZ4, Zstandard</li>
+            <li>Labeling helps operators identify backup activity vs. query load</li>
+        </ul>
+        <p><em>Status: Optional — improves visibility but not required for correctness.</em></p>
+    </div>
+
+    <div class="gap-category">
+        <h3>□ Cryptography (Optional — 8 locations)</h3>
+        <p>CPU-bound operations during auth:</p>
+        <ul>
+            <li>SCRAM-SHA-256 (PBKDF2 with 4096+ iterations)</li>
+            <li>SQL hash functions: MD5, SHA-256, SHA-512</li>
+            <li>HMAC operations</li>
+        </ul>
+        <p><em>Status: Optional — helps distinguish "authenticating users" from "running queries" during connection storms.</em></p>
+    </div>
+
+    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+
+    <h2><span class="done">✓</span> Recently Closed</h2>
+    
+    <div class="highlight done">
+        <p><strong>Hash table searches in locking</strong> — Now has proper wait event instrumentation!</p>
+        <p>Commit: <a href="https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5">e05a24c</a></p>
+    </div>
+
+    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+
+    <h2>Observer Effect</h2>
+    
+    <p>An additional challenge: logging itself can cause observer effects that confuse wait event analysis.</p>
+    
+    <div class="highlight">
+        <p><strong>Example:</strong> <code>log_min_duration_statement</code> with high TPS on non-fast disks</p>
+        <p>When logging is enabled, backends spend time writing to disk for every slow query. This I/O lacks a wait event, so it appears as NULL → "CPU" in monitoring tools.</p>
+        <p>The very act of observing (logging) changes what's being observed, and the gap in instrumentation makes it invisible.</p>
+    </div>
+
+    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+
+    <h2>GSoC 2026</h2>
+    
+    <p>This project is proposed for <strong>Google Summer of Code 2026</strong>:</p>
+    <p>→ <a href="https://wiki.postgresql.org/wiki/GSoC_2026#Wait_Event_Coverage_Improvements">Wait Event Coverage Improvements</a></p>
+    
+    <p>If you're a student interested in PostgreSQL internals and observability, this is a great opportunity to contribute to a critical area of database monitoring.</p>
+
+    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+
+    <h2>Resources</h2>
+    
+    <ul>
+        <li><a href="https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md">Full Gap Analysis (GitHub)</a> — Detailed analysis with 56 specific code locations</li>
+        <li><a href="https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com">Mailing List Thread</a> — Community discussion on pgsql-hackers</li>
+    </ul>
+
+    <footer>
+        <p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
+        <p>Analysis by <a href="https://postgres.ai">Nikolay Samokhvalov</a> (PostgresAI)</p>
+        <p>Design inspired by <a href="https://owickstrom.github.io/the-monospace-web/">The Monospace Web</a></p>
+    </footer>
+</body>
+</html>
