@@ -192,9 +192,37 @@
 
     <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
 
-    <h2>The Problem</h2>
+    <h2>What Are Wait Events?</h2>
     
-    <p>Many PostgreSQL monitoring tools visualize <code>wait_event IS NULL</code> as "CPU" — often displayed in green. This convention originated from tools like RDS Performance Insights and PASH Viewer, and traces back to Oracle's approach.</p>
+    <p>PostgreSQL <strong>wait events</strong> provide insight into what a backend process is doing at any given moment. When a process is actively waiting on a resource (I/O, lock, network), PostgreSQL records the specific wait event. This allows monitoring tools to show where time is being spent.</p>
+    
+    <div class="highlight">
+        <p><strong>Official Documentation:</strong> <a href="https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW">pg_stat_activity — PostgreSQL Documentation</a></p>
+    </div>
+    
+    <h3>The "Green CPU" Problem</h3>
+    
+    <p>Many monitoring tools (AWS RDS Performance Insights, PASH Viewer, etc.) visualize <code>wait_event IS NULL</code> as green "CPU" time:</p>
+    
+    <pre>
+┌─────────────────────────────────────────────────────────┐
+│  Active Sessions (sampled every second)                 │
+│                                                         │
+│  ████████████████████  <- Database CPU (green)          │
+│  ▓▓▓▓▓▓▓▓              <- I/O:DataFileRead (blue)      │
+│  ░░░░░░                <- Lock:relation (orange)       │
+│                                                         │
+│  Legend: Green = "CPU" (wait_event IS NULL)            │
+└─────────────────────────────────────────────────────────┘
+    </pre>
+    
+    <p>But <code>NULL</code> doesn't always mean "CPU working" — it can also mean <strong>"not instrumented yet."</strong></p>
+
+    <h2>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</h2>
+
+    <h2>The Real Problem</h2>
+    
+    <p>When a backend is stuck waiting on network I/O, external authentication, or other blocking operations <em>without</em> wait event coverage, monitoring tools incorrectly show it as green "CPU" activity.</p>
     
     <div class="highlight">
         <p><strong>The issue:</strong> <code>NULL</code> doesn't always mean "CPU working" — some wait events are uninstrumented.</p>
@@ -357,12 +385,18 @@
             document.getElementById('copy-llm').addEventListener('click', function() {
                 var md = `# PostgreSQL Wait Events Coverage Gaps
 
-## The Problem
-Many PostgreSQL monitoring tools visualize \`wait_event IS NULL\` as "CPU" — often displayed in green. This convention originated from tools like RDS Performance Insights and PASH Viewer, and traces back to Oracle's approach.
+## What Are Wait Events?
+PostgreSQL **wait events** provide insight into what a backend process is doing at any given moment. When a process is actively waiting on a resource (I/O, lock, network), PostgreSQL records the specific wait event. This allows monitoring tools to show where time is being spent.
 
-**The issue:** \`NULL\` doesn't always mean "CPU working" — some wait events are uninstrumented.
+**Official Documentation:** https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW
 
-When a backend is stuck waiting on network I/O, external authentication, or other blocking operations without wait event coverage, monitoring tools incorrectly show it as CPU activity.
+## The "Green CPU" Problem
+Many monitoring tools (AWS RDS Performance Insights, PASH Viewer, etc.) visualize \`wait_event IS NULL\` as green "CPU" time.
+
+But \`NULL\` doesn't always mean "CPU working" — it can also mean **"not instrumented yet."**
+
+## The Real Problem
+When a backend is stuck waiting on network I/O, external authentication, or other blocking operations without wait event coverage, monitoring tools incorrectly show it as green "CPU" activity.
 
 **Best practice:** Tools should visualize NULL as "CPU or unknown wait event" — PostgresAI monitoring follows this convention.
 
@@ -425,6 +459,7 @@ This project is proposed for Google Summer of Code 2026.
 - Full Gap Analysis (GitHub): https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md
 - Mailing List Thread: https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com
 - GSoC 2026 Proposal: https://wiki.postgresql.org/wiki/GSoC_2026#Wait_Event_Coverage_Improvements
+- Official Docs: https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW
 
 ---
 Analysis by Nikolay Samokhvalov (PostgresAI)
