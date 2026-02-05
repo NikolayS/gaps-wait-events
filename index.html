@@ -66,6 +66,32 @@
             --dim: #75715e;
             --success: #a6e22e;
             --warning: #fd971f;
+            --pre-bg: #2a2a2a;
+            --category-bg: #252525;
+        }
+        
+        [data-theme="light"] {
+            --bg: #f5f5f5;
+            --fg: #1a1a1a;
+            --accent: #0066cc;
+            --dim: #666666;
+            --success: #2d7a00;
+            --warning: #b35900;
+            --pre-bg: #e8e8e8;
+            --category-bg: #e0e0e0;
+        }
+        
+        @media (prefers-color-scheme: light) {
+            :root:not([data-theme]):not([data-theme="dark"]) {
+                --bg: #f5f5f5;
+                --fg: #1a1a1a;
+                --accent: #0066cc;
+                --dim: #666666;
+                --success: #2d7a00;
+                --warning: #b35900;
+                --pre-bg: #e8e8e8;
+                --category-bg: #e0e0e0;
+            }
         }
         
         * {
@@ -157,9 +183,39 @@
             margin-top: 1em;
         }
         
+        .theme-switcher {
+            margin-top: 1.5em;
+            display: flex;
+            gap: 0.5em;
+            justify-content: center;
+        }
+        
+        .theme-switcher button {
+            background: var(--category-bg);
+            border: 1px solid var(--dim);
+            color: var(--fg);
+            padding: 0.3em 0.6em;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            border-radius: 3px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        
+        .theme-switcher button:hover {
+            opacity: 0.9;
+        }
+        
+        .theme-switcher button.active {
+            opacity: 1;
+            border-color: var(--accent);
+            background: var(--pre-bg);
+        }
+        
         pre, code {
             font-family: inherit;
-            background: #2a2a2a;
+            background: var(--pre-bg);
             padding: 0.2em 0.4em;
             border-radius: 3px;
         }
@@ -183,7 +239,7 @@
         }
         
         .highlight {
-            background: #2a2a2a;
+            background: var(--pre-bg);
             border-left: 2px solid var(--accent);
             padding: 1em 2ch;
             margin: 1em 0;
@@ -210,7 +266,7 @@
         .gap-category {
             margin: 2em 0;
             padding: 1em;
-            background: #252525;
+            background: var(--category-bg);
         }
         
         .gap-category h3 {
@@ -227,7 +283,7 @@
         
         .stat {
             padding: 1em;
-            background: #252525;
+            background: var(--category-bg);
         }
         
         .stat-number {
@@ -317,6 +373,12 @@
 ╚════════════════════════════════════════╝
         </pre>
         <p class="subtitle">Analysis and improvement proposals for PostgreSQL wait event instrumentation</p>
+        
+        <div class="theme-switcher">
+            <button onclick="setTheme('system')" id="btn-system" title="System preference">🖥️</button>
+            <button onclick="setTheme('light')" id="btn-light" title="Light theme">☀️</button>
+            <button onclick="setTheme('dark')" id="btn-dark" title="Dark theme">🌙</button>
+        </div>
     </div>
     
     <!-- LLM Context: This document describes gaps in PostgreSQL wait event coverage -->
@@ -600,6 +662,39 @@ GitHub: https://github.com/NikolayS/gaps-wait-events`;
                     setTimeout(function() { btn.textContent = 'Copy for LLM'; }, 2000);
                 });
             });
+        </script>
+        
+        <!-- Theme Switcher Script -->
+        <script>
+            function setTheme(theme) {
+                if (theme === 'system') {
+                    document.documentElement.removeAttribute('data-theme');
+                    localStorage.removeItem('theme');
+                } else {
+                    document.documentElement.setAttribute('data-theme', theme);
+                    localStorage.setItem('theme', theme);
+                }
+                updateThemeButtons(theme);
+            }
+            
+            function updateThemeButtons(activeTheme) {
+                document.querySelectorAll('.theme-switcher button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                if (activeTheme) {
+                    document.getElementById('btn-' + activeTheme).classList.add('active');
+                } else {
+                    document.getElementById('btn-system').classList.add('active');
+                }
+            }
+            
+            // Load saved theme or default to system
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else {
+                updateThemeButtons('system');
+            }
         </script>
         
         <p>Analysis by <a href="https://postgres.ai">Nikolay Samokhvalov</a> (PostgresAI)</p>
