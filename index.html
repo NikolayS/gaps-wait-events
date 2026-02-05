@@ -197,8 +197,9 @@
     <p>Many PostgreSQL monitoring tools visualize <code>wait_event IS NULL</code> as "CPU" — often displayed in green. This convention originated from tools like RDS Performance Insights and PASH Viewer, and traces back to Oracle's approach.</p>
     
     <div class="highlight">
-        <p><strong>The issue:</strong> <code>NULL</code> doesn't mean "CPU working" — it means "not instrumented yet."</p>
+        <p><strong>The issue:</strong> <code>NULL</code> doesn't always mean "CPU working" — some wait events are uninstrumented.</p>
         <p>When a backend is stuck waiting on network I/O, external authentication, or other blocking operations without wait event coverage, monitoring tools incorrectly show it as CPU activity.</p>
+        <p><strong>Best practice:</strong> Tools should visualize NULL as "CPU or unknown wait event" — PostgresAI monitoring follows this convention.</p>
     </div>
 
     <p>This leads to misdiagnosis during incidents. A connection storm caused by slow LDAP authentication appears as "high CPU load" when it's actually network/auth waits that lack instrumentation.</p>
