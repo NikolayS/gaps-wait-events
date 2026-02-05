@@ -92,6 +92,8 @@
             padding: 1em;
             overflow-x: auto;
             margin: 1em 0;
+            max-width: 100%;
+            -webkit-overflow-scrolling: touch;
         }
         
         ul, ol {
@@ -192,11 +194,12 @@
             }
             
             pre {
-                font-size: 12px;
-                padding: 0.8em;
-                overflow-x: auto;
+                font-size: 10px;
+                padding: 0.6em;
+                overflow-x: scroll;
                 white-space: pre;
                 word-wrap: normal;
+                -webkit-overflow-scrolling: touch;
             }
             
             h1 {
@@ -260,16 +263,16 @@
     
     <p>Many monitoring tools (AWS RDS Performance Insights, PASH Viewer, etc.) visualize <code>wait_event IS NULL</code> as green "CPU" time:</p>
     
-    <pre>
-┌─────────────────────────────────────────────────────────┐
-│  Active Sessions (sampled every second)                 │
-│                                                         │
-│  ████████████████████  <- Database CPU (green)          │
-│  ▓▓▓▓▓▓▓▓              <- I/O:DataFileRead (blue)      │
-│  ░░░░░░                <- Lock:relation (orange)       │
-│                                                         │
-│  Legend: Green = "CPU" (wait_event IS NULL)            │
-└─────────────────────────────────────────────────────────┘
+    <pre style="font-size: 11px;">
+┌────────────────────────────────────────┐
+│ Active Sessions (sampled every second) │
+│                                        │
+│ ████████████████ <- Database CPU       │
+│ ▓▓▓▓▓▓▓▓         <- I/O:DataFileRead  │
+│ ░░░░░░           <- Lock:relation     │
+│                                        │
+│ Legend: Green = "CPU" (NULL)          │
+└────────────────────────────────────────┘
     </pre>
     
     <p>But <code>NULL</code> doesn't always mean "CPU working" — it can also mean <strong>"not instrumented yet."</strong></p>
