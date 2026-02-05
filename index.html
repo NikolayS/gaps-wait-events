@@ -346,6 +346,97 @@
 
     <footer>
         <p>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</p>
+        
+        <div style="margin: 1.5em 0;">
+            <a href="https://github.com/NikolayS/gaps-wait-events">View source</a> · 
+            <a href="https://github.com/NikolayS/gaps-wait-events/edit/master/index.html">Edit</a> · 
+            <button id="copy-llm" style="background: var(--bg); color: var(--accent); border: 1px solid var(--accent); padding: 0.3em 0.8em; font-family: inherit; cursor: pointer;">Copy for LLM</button>
+        </div>
+        
+        <script>
+            document.getElementById('copy-llm').addEventListener('click', function() {
+                var md = `# PostgreSQL Wait Events Coverage Gaps
+
+## The Problem
+Many PostgreSQL monitoring tools visualize \`wait_event IS NULL\` as "CPU" — often displayed in green. This convention originated from tools like RDS Performance Insights and PASH Viewer, and traces back to Oracle's approach.
+
+**The issue:** \`NULL\` doesn't always mean "CPU working" — some wait events are uninstrumented.
+
+When a backend is stuck waiting on network I/O, external authentication, or other blocking operations without wait event coverage, monitoring tools incorrectly show it as CPU activity.
+
+**Best practice:** Tools should visualize NULL as "CPU or unknown wait event" — PostgresAI monitoring follows this convention.
+
+## Gap Categories
+
+### Authentication (Critical — 32 locations)
+Every authentication method has gaps that block logins without visibility:
+
+- **LDAP:** 12 operations — DNS SRV lookups, TLS handshakes, binds, searches
+- **Ident:** 8 operations — DNS lookups, TCP connections to ident server
+- **PAM:** 2 operations — black box external auth (can invoke LDAP, AD, scripts)
+- **RADIUS:** 5 operations — UDP auth without proper wait events
+- **GSSAPI/Kerberos:** 1 operation — KDC server contact
+- **DNS lookups:** 3 in auth + connection logging when \`log_hostname=on\`
+
+### I/O Operations (Required — 7 locations)
+- ~~COPY FROM/TO PROGRAM~~ ✓ FIXED (2026-02-03) — See Recently Added section
+- File operations: \`unlink()\` for table files, \`fsync()\` for signal files
+- Dynamic shared memory: \`fstat()\` operations in parallel query
+
+### Compression / Cryptography
+NOT APPLICABLE — CPU-bound operations should NOT be covered by wait events per community consensus.
+
+## Recently Added Wait Events
+
+### 2026-02-03 — COPY FROM/TO (part of this gap analysis project)
+- \`COPY_FROM_READ\` — "Waiting to read data from a pipe, a file or a program during COPY FROM"
+- \`COPY_TO_WRITE\` — "Waiting to write data to a pipe, a file or a program during COPY TO"
+
+### 2025-12-09 — Group Commit Delay
+- \`COMMIT_DELAY\` — "Waiting for commit delay before WAL flush"
+
+### 2025-11-05 — LSN Waiting Infrastructure
+- \`WAIT_FOR_WAL_FLUSH\` — "Waiting for WAL flush to reach a target LSN on a primary"
+- \`WAIT_FOR_WAL_REPLAY\` — "Waiting for WAL replay to reach a target LSN on a standby"
+
+### 2025-05-29 — Async I/O (io_uring)
+- \`AioUringCompletion\`
+
+### 2024-01-02 — WAL Summarizer
+- \`WALSummarizerLock\`
+
+### 2023-10-13 — Checkpoint Delay
+- \`CHECKPOINT_DELAY_COMPLETE\` — "Waiting for a backend that blocks a checkpoint from completing"
+- \`CHECKPOINT_DELAY_START\` — "Waiting for a backend that blocks a checkpoint from starting"
+
+## Observer Effect
+Example: \`log_min_duration_statement=0\` with high TPS on non-fast disks
+
+When logging all statements (duration=0), backends spend time writing to disk for every single query. This I/O lacks a wait event, so it appears as NULL → "CPU" in monitoring tools.
+
+The very act of observing (logging) changes what's being observed, and the gap in instrumentation makes it invisible.
+
+## GSoC 2026
+This project is proposed for Google Summer of Code 2026.
+
+**Update:** A potential candidate has already expressed interest — details TBD.
+
+## Resources
+- Full Gap Analysis (GitHub): https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md
+- Mailing List Thread: https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com
+- GSoC 2026 Proposal: https://wiki.postgresql.org/wiki/GSoC_2026#Wait_Event_Coverage_Improvements
+
+---
+Analysis by Nikolay Samokhvalov (PostgresAI)
+GitHub: https://github.com/NikolayS/gaps-wait-events`;
+                navigator.clipboard.writeText(md).then(function() {
+                    var btn = document.getElementById('copy-llm');
+                    btn.textContent = 'Copied!';
+                    setTimeout(function() { btn.textContent = 'Copy for LLM'; }, 2000);
+                });
+            });
+        </script>
+        
         <p>Analysis by <a href="https://postgres.ai">Nikolay Samokhvalov</a> (PostgresAI)</p>
         <p>Design inspired by <a href="https://owickstrom.github.io/the-monospace-web/">The Monospace Web</a></p>
     </footer>
