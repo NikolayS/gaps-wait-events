@@ -4,7 +4,7 @@ Inspected 2026-11-18. PostgreSQL REL_19_STABLE commit [`882f6b32f4ae42d32d637309
 
 ## Version and coverage
 
-Upstream exposes REL_19_0 (`5c839a2a08b9b87a349be97371fac6c5a2873b10`) and REL_19_STABLE; master identifies as 20devel. Tag existence is not proof of public GA announcement. The public release page still shows an unspecified date and the November 12 RC2 announcement when checked. This audit therefore uses an exact PG19 stable SHA rather than claiming a release date.
+Upstream has the REL_19_0 tag (`5c839a2a08b9b87a349be97371fac6c5a2873b10`, committed 2026-11-16) and REL_19_STABLE; master identifies as 20devel. The pinned SHA is REL_19_0 plus three commits (JIT hashing, Incremental Sort, `.abi-compliance-history`), none of which touch the files cited here, so every line number below is also valid at REL_19_0. A tag is not a public GA announcement. As checked on 2026-11-18: the latest postgresql.org announcement is "19 RC 2 Released" (2026-11-12), the current docs are labeled "19rc2", the PG19 release notes still say "Release date: 2026-??-??", and the roadmap page says the 19 release "is planned for November 19, 2026". PostgreSQL 19 is therefore not GA yet; this audit uses an exact PG19 stable SHA rather than claiming a release date.
 
 Every category on the site was reviewed: all 9 historical I/O rows, all 32 historical authentication rows (below), both rejected CPU-only categories, logging, and the listed recently-added event names. This is not an exhaustive search for every possible gap in PostgreSQL. The 15 historical compression/cryptographic CPU candidates remain excluded: CPU time is not waiting; their execution time was not benchmarked.
 
@@ -29,13 +29,13 @@ All paths below are under [the pinned source](https://github.com/postgres/postgr
 | mmap DSM metadata | dsm_impl.c:850 | Open; fstat outside DSM_FILL_ZERO_WRITE wrapper |
 | COPY FROM fread | copyfromparse.c:256 | Fixed; WAIT_EVENT_COPY_FROM_READ |
 | COPY TO fwrite | copyto.c:627 | Fixed; WAIT_EVENT_COPY_TO_WRITE |
-| NEW relation creation | md.c:249 -> fd.c:1568,1579,1611 -> BasicOpenFilePerm() fd.c:1115–1125 | Open; O_CREAT/O_EXCL reaches uninstrumented open |
+| NEW relation creation | mdcreate() md.c:249 -> PathNameOpenFile() fd.c:1568 -> PathNameOpenFilePerm() fd.c:1579, call at :1611 -> BasicOpenFilePerm() fd.c:1115, open() at :1121/:1123 | Open; O_CREAT/O_EXCL reaches uninstrumented open |
 
 COPY fixed by [e05a24c2](https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5), committed 2026-02-03. This retires the original two read/write rows, not all possible open/close/process-wait work.
 
 ### Temporary tables: precise proposal
 
-Repeated CREATE TEMP TABLE and DROP TABLE can expose uninstrumented relation-file creation/removal, including filesystem metadata stalls. Temp relations are unlinked immediately rather than the deferred permanent-main-fork checkpoint path (see md.c's mdunlink comments and mdunlinkfork branches). Existing DataFileRead/Write/Sync and FileTruncate wrappers are separate; do not claim all temporary-table work is invisible. Catalog modifications, shared invalidation, lock waits and CPU work are also distinct.
+Repeated CREATE TEMP TABLE and DROP TABLE can expose uninstrumented relation-file creation/removal, including filesystem metadata stalls. Temp relations are unlinked immediately in mdunlinkfork() (md.c:406 for the first segment, md.c:465 for extra segments) rather than through the deferred permanent-main-fork checkpoint path (md.c:1966, called from sync.c:231). Not counted in the historical inventory, but on the same removal path: for permanent relations mdunlinkfork() first calls do_truncate() (md.c:393, :420, :455), which calls pg_truncate() (fd.c:724) and a bare truncate() with no wait event. Temp relations skip this truncate. Unlike FileTruncate() (DATA_FILE_TRUNCATE), pg_truncate() is not instrumented. Existing DataFileRead/Write/Sync and FileTruncate wrappers are separate; do not claim all temporary-table work is invisible. Catalog modifications, shared invalidation, lock waits and CPU work are also distinct.
 
 Propose narrowly scoped relation-file open/create and removal wait instrumentation after measurements. Consider common file wrappers, retries, errno preservation, failure paths, platform variations, and the difference between instrumented elapsed syscall time and actual blocked time. Do not put one I/O event around an entire DDL statement. No PostgreSQL code patch is included.
 
@@ -43,7 +43,7 @@ Propose narrowly scoped relation-file open/create and removal wait instrumentati
 
 COPY and CommitDelay are present. WAIT_FOR_WAL_WRITE was added and flush waiting extended to standbys by [7a39f43d](https://github.com/postgres/postgres/commit/7a39f43d885b44a78f366aa50535944c4e38bdbb); WRITE/FLUSH/REPLAY moved to IPC by [56fa044d](https://github.com/postgres/postgres/commit/56fa044d15e8b06d84889f06f5def21a62fb86a3). AioUringCompletion, WaitLSN and CheckpointDelayStart/Complete remain present. Correct the displayed WAL summarizer event to WALSummarizer (not WALSummarizerLock). The historical 2025-11-05 LSN date is the committer date (author date Nov3), so it is retained.
 
-GSoC text now identifies a historical proposal without claiming the candidate is still pending or that the project shipped.
+GSoC: "Wait Event Coverage Improvements" was on the PostgreSQL GSoC 2026 ideas list (still present in wiki revision [43116](https://wiki.postgresql.org/index.php?title=GSoC_2026&oldid=43116#Wait_Event_Coverage_Improvements), 2026-03-31). The 2026-05-04 revision ([43378](https://wiki.postgresql.org/index.php?title=GSoC_2026&oldid=43378)) adds a Results block ("Projects submitted: 14 ... Google approved: 7") and keeps 7 project sections; the wait-event project is not among them, so the current-page anchor `GSoC_2026#Wait_Event_Coverage_Improvements` no longer resolves. The site links the permanent revision and says the idea is not among the listed approved projects.
 
 # PG19 authentication and logging audit
 
@@ -76,7 +76,7 @@ Here `auth.c` means `src/backend/libpq/auth.c`. Status P = demonstrated potentia
 | LDAP get_option 2660 | auth.c:2715 | U | Reads LDAP_OPT_DIAGNOSTIC_MESSAGE; no demonstrated network operation. |
 | Ident reverse lookup 1686–1689 | auth.c:1741–1748 | X | NI_NUMERICHOST and NI_NUMERICSERV on remote AND local conversions; not reverse DNS. |
 | Ident remote forward lookup 1704 | auth.c:1750–1759 | X | AI_NUMERICHOST, numeric ident port. |
-| Ident local forward lookup 1720 | auth.c:1766–1775 | X | AI_NUMERICHOST and no service. |
+| Ident local forward lookup 1720 | auth.c:1767–1775 | X | AI_NUMERICHOST and no service. |
 | Ident socket 1728–1729 | auth.c:1783 | U | Local socket creation; no evidence of remote wait. Do not count as established external-network gap. |
 | Ident bind 1744 | auth.c:1799 | U | Local socket bind; no evidence of remote wait. |
 | Ident connect 1755–1756 | auth.c:1810 | P | Blocking connect, no dedicated wrapper. |

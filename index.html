@@ -54,7 +54,7 @@
       "educationalProgram": {
         "@type": "EducationalOccupationalProgram",
         "name": "Google Summer of Code 2026",
-        "url": "https://wiki.postgresql.org/wiki/GSoC_2026#Wait_Event_Coverage_Improvements"
+        "url": "https://wiki.postgresql.org/index.php?title=GSoC_2026&oldid=43116#Wait_Event_Coverage_Improvements"
       }
     }
     </script>
@@ -466,7 +466,7 @@
     <div class="gap-category" style="opacity: 0.6;">
         <h3><span style="text-decoration: line-through;">□ Compression</span> ✗ NOT APPLICABLE</h3>
         <p>Base backup compression (gzip, LZ4, Zstandard) was considered for wait event coverage.</p>
-        <p><strong>Community consensus:</strong> CPU-bound operations should NOT be covered by wait events. Per <a href="https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWT8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com">pgsql-hackers discussion</a>: "I vehemently oppose turning wait events into a poor emulation of a CPU profiler."</p>
+        <p><strong>Community consensus:</strong> CPU-bound operations should NOT be covered by wait events. Per <a href="https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com">pgsql-hackers discussion</a>: "I vehemently oppose turning wait events into a poor emulation of a CPU profiler."</p>
         <p><em>Status: Rejected — wait events are for waiting, not CPU work.</em></p>
     </div>
 
@@ -554,9 +554,9 @@
     <h2>GSoC 2026</h2>
     
     <p>Historical proposal: <strong>Google Summer of Code 2026</strong>.</p>
-    <p>→ <a href="https://wiki.postgresql.org/wiki/GSoC_2026#Wait_Event_Coverage_Improvements">Wait Event Coverage Improvements</a></p>
+    <p>→ <a href="https://wiki.postgresql.org/index.php?title=GSoC_2026&amp;oldid=43116#Wait_Event_Coverage_Improvements">Wait Event Coverage Improvements</a> (ideas list, wiki revision of 2026-03-31)</p>
     
-    <p>The proposal link is retained for context; current participation and project completion have not been verified.</p>
+    <p>The idea is not among the 7 Google-approved projects that the current <a href="https://wiki.postgresql.org/wiki/GSoC_2026">GSoC 2026 page</a> lists. The work remains open.</p>
     
     <p>Contributors can use the pinned source audit to evaluate remaining instrumentation work.</p>
 
@@ -588,7 +588,7 @@ Source audit: 2026-11-18, PostgreSQL 19 stable 882f6b32f4ae42d32d63730985658040e
 - CPU-bound compression and cryptography remain outside wait-event scope.
 - Logging may block on a collector pipe or stderr; not every backend log is a direct disk write.
 - WAL wait events include WRITE/FLUSH/REPLAY in IPC; WALSummarizer is the displayed LWLock event name.
-- GSoC 2026 is a historical proposal; current participation and project completion are unverified.
+- GSoC 2026: the idea was on the ideas list but is not among the 7 Google-approved projects; the work remains open.
 
 Full audit and pinned evidence: https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md
 Historical analysis: https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md
