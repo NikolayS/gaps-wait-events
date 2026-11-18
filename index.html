@@ -434,10 +434,10 @@
         These are source-level findings, not measured latency claims. See the
         <a href="https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md">audit and counting method</a>.</p>
     <div class="stats">
-        <div class="stat"><div class="stat-number critical">27</div><div class="stat-label">Historical auth candidates<br>remaining after RADIUS removal</div></div>
+        <div class="stat"><strong>Authentication review</strong><div class="stat-label">12 potentially blocking<br>10 need validation<br>5 rejected DNS claims<br>5 removed RADIUS rows</div></div>
         <div class="stat"><div class="stat-number warning">8</div><div class="stat-label">I/O source locations<br>7 retained + relation creation</div></div>
     </div>
-    <p>The former 32 authentication locations were candidates, not 32 verified blocking waits.
+    <p>The 32 historical authentication rows reconcile to 12 potentially blocking uninstrumented operations, 10 requiring library or platform validation, 5 rejected DNS claims, and 5 removed RADIUS rows. This is not an exhaustive current gap count.
         Numeric address conversions, library initialization and option access must not be counted as confirmed network waits.</p>
     <div class="gap-category">
         <h3><span class="critical">■</span> Authentication: open gaps and corrected claims</h3>
@@ -553,10 +553,10 @@
 
     <h2>GSoC 2026</h2>
     
-    <p>This project is proposed for <strong>Google Summer of Code 2026</strong>:</p>
+    <p>Historical proposal: <strong>Google Summer of Code 2026</strong>.</p>
     <p>→ <a href="https://wiki.postgresql.org/wiki/GSoC_2026#Wait_Event_Coverage_Improvements">Wait Event Coverage Improvements</a></p>
     
-    <p><strong>Update:</strong> A potential candidate has already expressed interest — details TBD.</p>
+    <p>The proposal link is retained for context; current participation and project completion have not been verified.</p>
     
     <p>Contributors can use the pinned source audit to evaluate remaining instrumentation work.</p>
 
@@ -582,12 +582,13 @@
 
 Source audit: 2026-11-18, PostgreSQL 19 stable 882f6b32f4ae42d32d63730985658040e88e7dc0.
 
-- Auth: 32 historical candidates minus 5 removed RADIUS sites = 27 retained candidates, NOT 27 confirmed waits. Numeric address conversions are not DNS; library init/options are not automatically blocking.
+- Auth: 32 historical rows = 12 potentially blocking uninstrumented operations + 10 requiring library/platform validation + 5 rejected DNS claims + 5 removed RADIUS rows. This is not an exhaustive current gap count.
 - I/O: original 9 sites minus 2 COPY sites fixed in PG19 = 7 retained, plus 1 relation-file creation site = 8.
 - Relation-file create/open and unlink lack instrumentation; this applies to temp tables but is not a blanket statement about all DDL work.
 - CPU-bound compression and cryptography remain outside wait-event scope.
 - Logging may block on a collector pipe or stderr; not every backend log is a direct disk write.
 - WAL wait events include WRITE/FLUSH/REPLAY in IPC; WALSummarizer is the displayed LWLock event name.
+- GSoC 2026 is a historical proposal; current participation and project completion are unverified.
 
 Full audit and pinned evidence: https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md
 Historical analysis: https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md
