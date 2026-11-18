@@ -11,7 +11,7 @@ Every category on the site was reviewed: all 9 historical I/O rows, all 32 histo
 ## Count reconciliation
 
 - Historical inventory: 41 blocking candidates (9 I/O + 32 auth) and 15 CPU-only candidates = 56. Do not present 56 as current open gaps.
-- Auth: 32 historical rows = 12 potentially blocking uninstrumented rows + 5 false DNS claims + 5 removed RADIUS rows + 10 requiring narrower library/platform validation. The visible 27 is only retained historical candidates after RADIUS removal, explicitly not 27 confirmed waits.
+- Auth: 32 historical rows = 12 potentially blocking uninstrumented rows + 5 false DNS claims + 5 removed RADIUS rows + 10 requiring narrower library/platform validation. The visible reconciliation separates these four statuses; rejected claims and removed features are not presented as current open gaps.
 - I/O: 9 historical sites minus 2 COPY sites now instrumented = 7 retained; plus one newly documented relation-creation site = 8. Relation creation and removal apply more broadly than temp tables. This is a call-site inventory, not eight new event names.
 
 ## I/O evidence
