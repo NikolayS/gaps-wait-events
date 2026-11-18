@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)">
     
     <!-- SEO & Meta Tags -->
     <title>PostgreSQL Wait Events Coverage Gaps | gaps.wait.events</title>
@@ -19,6 +22,8 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://gaps.wait.events/">
     <meta property="og:site_name" content="gaps.wait.events">
+    <meta property="og:locale" content="en_US">
+    <meta property="article:modified_time" content="2026-11-18">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
@@ -36,6 +41,9 @@
       "@type": "TechArticle",
       "headline": "PostgreSQL Wait Events Coverage Gaps",
       "description": "Analysis of missing PostgreSQL wait event instrumentation covering authentication, I/O operations, and observability improvements.",
+      "url": "https://gaps.wait.events/",
+      "dateModified": "2026-11-18",
+      "inLanguage": "en",
       "author": {
         "@type": "Person",
         "name": "Nikolay Samokhvalov",
@@ -63,9 +71,10 @@
             --bg: #1a1a1a;
             --fg: #e0e0e0;
             --accent: #66d9ef;
-            --dim: #75715e;
+            --dim: #a8a48c;
             --success: #a6e22e;
             --warning: #fd971f;
+            --critical: #f92672;
             --pre-bg: #2a2a2a;
             --category-bg: #252525;
         }
@@ -73,7 +82,7 @@
         [data-theme="light"] {
             --bg: #f5f5f5;
             --fg: #1a1a1a;
-            --accent: #0066cc;
+            --accent: #0052a3;
             --dim: #545454;
             --success: #1f5c00;
             --warning: #8f4700;
@@ -86,7 +95,7 @@
             :root:not([data-theme]):not([data-theme="dark"]) {
                 --bg: #f5f5f5;
                 --fg: #1a1a1a;
-                --accent: #0066cc;
+                --accent: #0052a3;
                 --dim: #545454;
                 --success: #1f5c00;
                 --warning: #8f4700;
@@ -155,11 +164,49 @@
         
         a {
             color: var(--accent);
-            text-decoration: none;
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 0.2em;
         }
         
-        a:hover {
-            text-decoration: underline;
+        a:hover, a:focus-visible {
+            text-decoration-thickness: 2px;
+        }
+
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .rule {
+            color: var(--accent);
+            margin: 2em 0 1em;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .rejected {
+            border: 1px dashed var(--dim);
+        }
+
+        .rejected .struck {
+            text-decoration: line-through;
+        }
+
+        section[id], div[id] {
+            scroll-margin-top: 1em;
         }
         
         .header {
@@ -178,6 +225,11 @@
             max-width: 100%;
             overflow-x: auto;
             line-height: 1;
+            white-space: pre;
+            background: var(--pre-bg);
+            padding: 1em;
+            border-radius: 3px;
+            text-align: left;
         }
         
         .subtitle {
@@ -252,7 +304,7 @@
         }
         
         .critical {
-            color: #f92672;
+            color: var(--critical);
         }
         
         .warning {
@@ -277,7 +329,7 @@
         
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 2ch;
             margin: 2em 0;
             text-align: center;
@@ -365,30 +417,67 @@
                 font-size: 0.9em;
             }
         }
+        @media print {
+            :root, :root[data-theme] {
+                --bg: #ffffff;
+                --fg: #000000;
+                --accent: #003d7a;
+                --dim: #444444;
+                --success: #1f5c00;
+                --warning: #8f4700;
+                --critical: #b0144f;
+                --pre-bg: #f2f2f2;
+                --category-bg: #ffffff;
+            }
+            body {
+                max-width: none;
+                padding: 0;
+                background: #ffffff;
+                color: #000000;
+            }
+            .theme-switcher, #copy-llm, .footer-actions {
+                display: none;
+            }
+            .gap-category, .highlight, .stat {
+                border: 1px solid #999999;
+                break-inside: avoid;
+            }
+            pre, .header-art {
+                white-space: pre-wrap;
+                overflow: visible;
+            }
+            h2, h3 {
+                break-after: avoid;
+            }
+            main a[href^="http"]::after {
+                content: " <" attr(href) ">";
+                color: #444444;
+                word-break: break-all;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <pre class="header-art" aria-label="PostgreSQL Wait Events Coverage Gaps">
-╔════════════════════════════════════════╗
+    <header class="header">
+        <h1 class="header-art"><span aria-hidden="true">╔════════════════════════════════════════╗
 ║  POSTGRESQL WAIT EVENTS COVERAGE GAPS  ║
-╚════════════════════════════════════════╝
-        </pre>
+╚════════════════════════════════════════╝</span><span class="sr-only">PostgreSQL Wait Events Coverage Gaps</span></h1>
         <p class="subtitle">Analysis and improvement proposals for PostgreSQL wait event instrumentation</p>
         
         <div class="theme-switcher">
-            <button onclick="setTheme('system')" id="btn-system" title="System preference">🖥️</button>
-            <button onclick="setTheme('light')" id="btn-light" title="Light theme">☀️</button>
-            <button onclick="setTheme('dark')" id="btn-dark" title="Dark theme">🌙</button>
+            <button type="button" onclick="setTheme('system')" id="btn-system" title="System preference" aria-label="System theme">🖥️</button>
+            <button type="button" onclick="setTheme('light')" id="btn-light" title="Light theme" aria-label="Light theme">☀️</button>
+            <button type="button" onclick="setTheme('dark')" id="btn-dark" title="Dark theme" aria-label="Dark theme">🌙</button>
         </div>
-    </div>
+    </header>
     
     <!-- LLM Context: This document describes gaps in PostgreSQL wait event coverage -->
     <!-- Key topics: wait events, NULL handling, authentication waits, I/O waits, GSoC 2026 -->
 
-    <h2>────────────────────────────────────</h2>
+    <main>
+    <div class="rule" aria-hidden="true">────────────────────────────────────</div>
 
-    <h2>What Are Wait Events?</h2>
+    <h2 id="what-are-wait-events">What Are Wait Events?</h2>
     
     <p>PostgreSQL <strong>wait events</strong> provide insight into what a backend process is doing at any given moment. When a process is actively waiting on a resource (I/O, lock, network), PostgreSQL records the specific wait event. This allows monitoring tools to show where time is being spent.</p>
     
@@ -396,7 +485,7 @@
         <p><strong>Official Documentation:</strong> <a href="https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW">pg_stat_activity — PostgreSQL Documentation</a></p>
     </div>
     
-    <h3>The "Green CPU" Problem</h3>
+    <h3 id="green-cpu">The "Green CPU" Problem</h3>
     
     <p>Many monitoring tools (AWS RDS Performance Insights, PASH Viewer, etc.) visualize <code>wait_event IS NULL</code> as green "CPU" time:</p>
     
@@ -414,9 +503,9 @@
     
     <p>But <code>NULL</code> doesn't always mean "CPU working" — it can also mean <strong>"not instrumented yet."</strong></p>
 
-    <h2>────────────────────────────────────</h2>
+    <div class="rule" aria-hidden="true">────────────────────────────────────</div>
 
-    <h2>The Real Problem</h2>
+    <h2 id="real-problem">The Real Problem</h2>
     
     <p>When a backend is stuck waiting on network I/O, external authentication, or other blocking operations <em>without</em> wait event coverage, monitoring tools incorrectly show it as green "CPU" activity.</p>
     
@@ -428,11 +517,13 @@
 
     <p>This leads to misdiagnosis during incidents. A connection storm caused by slow LDAP authentication appears as "high CPU load" when it's actually network/auth waits that lack instrumentation.</p>
 
-    <h2>────────────────────────────────────</h2>
+    <div class="rule" aria-hidden="true">────────────────────────────────────</div>
 
-    <h2>Gap Categories</h2>
-    <p><strong>Source audit: 2026-11-18.</strong> PostgreSQL 19 stable at
-        <a href="https://github.com/postgres/postgres/commit/882f6b32f4ae42d32d63730985658040e88e7dc0">882f6b32f4ae</a>.
+    <h2 id="gap-categories">Gap Categories</h2>
+    <p><strong>Source audit: 2026-11-18.</strong> PostgreSQL REL_19_STABLE at
+        <a href="https://github.com/postgres/postgres/commit/882f6b32f4ae42d32d63730985658040e88e7dc0">882f6b32f4ae</a>
+        (the REL_19_0 tag plus 3 commits that touch no cited file). PostgreSQL 19 is not GA yet:
+        the latest announcement is 19 RC 2, and the release is planned for 2026-11-19.
         These are source-level findings, not measured latency claims. See the
         <a href="https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md">audit and counting method</a>.</p>
     <div class="stats">
@@ -441,8 +532,8 @@
     </div>
     <p>The 32 historical authentication rows reconcile to 12 potentially blocking uninstrumented operations, 10 requiring library or platform validation, 5 rejected DNS claims, and 5 removed RADIUS rows. This is not an exhaustive current gap count.
         Numeric address conversions, library initialization and option access must not be counted as confirmed network waits.</p>
-    <div class="gap-category">
-        <h3><span class="critical">■</span> Authentication: open gaps and corrected claims</h3>
+    <div class="gap-category" id="authentication">
+        <h3><span class="critical" aria-hidden="true">■</span> Authentication: open gaps and corrected claims</h3>
         <ul>
             <li><strong>LDAP:</strong> DNS SRV lookup, synchronous TLS, binds and search remain candidates for instrumentation. Initialization and option calls are not automatically network waits.</li>
             <li><strong>Ident:</strong> blocking connect/send/receive remain uninstrumented. The address conversions use numeric-only flags, not DNS.</li>
@@ -452,36 +543,47 @@
             <li><strong>DNS:</strong> connection hostname logging can block when <code>log_hostname=on</code>, but runs before shared PGPROC setup; it must not be described as an ordinary active CPU row in <code>pg_stat_activity</code>. Numeric-only auth error-message conversions are not DNS gaps.</li>
         </ul>
     </div>
-    <div class="gap-category">
-        <h3><span class="warning">■</span> I/O operations: 8 identified source locations</h3>
+    <div class="gap-category" id="io">
+        <h3><span class="warning" aria-hidden="true">■</span> I/O operations: 8 identified source locations</h3>
         <ul>
             <li><del><strong>COPY FROM/TO pipe/file/program read/write:</strong></del> <span class="done">FIXED in PostgreSQL 19</span> by <a href="https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5">e05a24c</a>. This covers the two original read/write sites, not every subprocess lifecycle operation.</li>
-            <li><strong>Relation-file removal:</strong> three <code>unlink()</code> sites remain uninstrumented: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L406">md.c:406</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L465">465</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L1966">1966</a>.</li>
+            <li><strong>Relation-file removal</strong> (<a href="#relation-files">details</a>)<strong>:</strong> three <code>unlink()</code> sites remain uninstrumented: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L406">md.c:406</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L465">465</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L1966">1966</a>.</li>
             <li><strong>Recovery signal files:</strong> two <code>pg_fsync()</code> sites remain uninstrumented: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/access/transam/xlogrecovery.c#L1027">1027</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/access/transam/xlogrecovery.c#L1041">1041</a>.</li>
             <li><strong>Dynamic shared memory:</strong> two <code>fstat()</code> sites remain uninstrumented: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/ipc/dsm_impl.c#L279">279</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/ipc/dsm_impl.c#L850">850</a>.</li>
-            <li><strong>NEW: relation-file creation:</strong> <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L249">mdcreate() at md.c:249</a> calls <code>PathNameOpenFile(... O_CREAT | O_EXCL)</code>; the underlying <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1115">open()</a> has no wait-event wrapper.</li>
+            <li><strong>NEW: relation-file creation</strong> (<a href="#relation-files">details</a>)<strong>:</strong> <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L249">mdcreate() at md.c:249</a> calls <code>PathNameOpenFile(... O_CREAT | O_EXCL)</code>; the underlying <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1115">open()</a> has no wait-event wrapper.</li>
+        </ul>
+    </div>
+
+    <div class="gap-category" id="relation-files">
+        <h3><span class="warning" aria-hidden="true">■</span> Relation files: creation, removal and truncation</h3>
+        <p>Every new relation gets a file on disk, and <code>DROP</code> removes it. PostgreSQL 19 reports no wait event for these filesystem calls.</p>
+        <ul>
+            <li><strong>Creation:</strong> <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L249"><code>mdcreate()</code> md.c:249</a> calls <code>PathNameOpenFile(... O_CREAT | O_EXCL)</code>. The chain goes through fd.c <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1568">1568</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1579">1579</a> and <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1611">1611</a> to <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1115"><code>BasicOpenFilePerm()</code> fd.c:1115</a>. Its <code>open()</code> at <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1121">1121</a>/<a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1123">1123</a> has no wait event.</li>
+            <li><strong>Removal:</strong> <code>mdunlinkfork()</code> calls <code>unlink()</code> at <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L406">md.c:406</a> for the first segment and <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L465">md.c:465</a> for extra segments. Temp relations are unlinked here immediately. Permanent main forks go through the deferred path: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L1966"><code>mdunlinkfiletag()</code> md.c:1966</a>, called from <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/sync/sync.c#L231">sync.c:231</a>. Neither callee nor caller has a wait event.</li>
+            <li><strong>Truncation (not counted in the 8):</strong> for permanent relations, <code>mdunlinkfork()</code> first calls <code>do_truncate()</code> (md.c <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L393">393</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L420">420</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L455">455</a>). That calls <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L724"><code>pg_truncate()</code> fd.c:724</a>, a bare <code>truncate()</code> with no wait event. Unlike <code>FileTruncate()</code> (<code>DATA_FILE_TRUNCATE</code>), it is not instrumented. Temp relations skip this step.</li>
         </ul>
         <p><strong>Why temporary tables matter:</strong> repeated <code>CREATE TEMP TABLE</code>/<code>DROP TABLE</code> exercises relation-file creation and immediate removal. These filesystem operations can block without a dedicated wait event. This is not a claim that all temporary-table work lacks instrumentation or that all elapsed time is I/O: catalog work, invalidation and real CPU execution are separate.</p>
         <p><strong>PostgreSQL hacking opportunity:</strong> measure these filesystem paths and propose narrowly scoped creation/removal I/O wait events, including common wrappers and platform-specific behavior. Do not wrap an entire DDL command in an I/O event or treat CPU work as waiting.</p>
+        <p>Evidence: <a href="https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md#temporary-tables-precise-proposal">audit, temporary tables section</a>.</p>
     </div>
 
-    <div class="gap-category" style="opacity: 0.6;">
-        <h3><span style="text-decoration: line-through;">□ Compression</span> ✗ NOT APPLICABLE</h3>
+    <div class="gap-category rejected" id="compression">
+        <h3><span class="struck">□ Compression</span> ✗ NOT APPLICABLE</h3>
         <p>Base backup compression (gzip, LZ4, Zstandard) was considered for wait event coverage.</p>
         <p><strong>Community consensus:</strong> CPU-bound operations should NOT be covered by wait events. Per <a href="https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com">pgsql-hackers discussion</a>: "I vehemently oppose turning wait events into a poor emulation of a CPU profiler."</p>
         <p><em>Status: Rejected — wait events are for waiting, not CPU work.</em></p>
     </div>
 
-    <div class="gap-category" style="opacity: 0.6;">
-        <h3><span style="text-decoration: line-through;">□ Cryptography</span> ✗ NOT APPLICABLE</h3>
+    <div class="gap-category rejected" id="cryptography">
+        <h3><span class="struck">□ Cryptography</span> ✗ NOT APPLICABLE</h3>
         <p>SCRAM-SHA-256 (PBKDF2), SQL hash functions, HMAC operations.</p>
         <p><strong>Community consensus:</strong> CPU-bound cryptographic operations are legitimate CPU work, not waits. Adding wait events everywhere would add overhead without providing useful waiting-state information.</p>
         <p><em>Status: Rejected — use profiling tools for CPU analysis, not wait events.</em></p>
     </div>
 
-    <h2>────────────────────────────────────</h2>
+    <div class="rule" aria-hidden="true">────────────────────────────────────</div>
 
-    <h2 id="recently-added"><span class="done">✓</span> Recently Added Wait Events</h2>
+    <h2 id="recently-added"><span class="done" aria-hidden="true">✓</span> Recently Added Wait Events</h2>
     
     <p>PostgreSQL 19 also adds <code>WAIT_FOR_WAL_WRITE</code> and extends flush waiting to standbys
         (<a href="https://github.com/postgres/postgres/commit/7a39f43d885b44a78f366aa50535944c4e38bdbb">7a39f43d</a>).
@@ -539,9 +641,9 @@
         <p>Commit: <a href="https://github.com/postgres/postgres/commit/0013ba29">0013ba29</a></p>
     </div>
 
-    <h2>────────────────────────────────────</h2>
+    <div class="rule" aria-hidden="true">────────────────────────────────────</div>
 
-    <h2>Observer Effect</h2>
+    <h2 id="observer-effect">Observer Effect</h2>
     
     <p>An additional challenge: logging itself can cause observer effects that confuse wait event analysis.</p>
     
@@ -551,9 +653,9 @@
         <p>The very act of observing (logging) changes what's being observed, and the gap in instrumentation makes it invisible.</p>
     </div>
 
-    <h2>────────────────────────────────────</h2>
+    <div class="rule" aria-hidden="true">────────────────────────────────────</div>
 
-    <h2>GSoC 2026</h2>
+    <h2 id="gsoc-2026">GSoC 2026</h2>
     
     <p>Historical proposal: <strong>Google Summer of Code 2026</strong>.</p>
     <p>→ <a href="https://wiki.postgresql.org/index.php?title=GSoC_2026&amp;oldid=43116#Wait_Event_Coverage_Improvements">Wait Event Coverage Improvements</a> (ideas list, wiki revision of 2026-03-31)</p>
@@ -562,46 +664,98 @@
     
     <p>Contributors can use the pinned source audit to evaluate remaining instrumentation work.</p>
 
-    <h2>────────────────────────────────────</h2>
+    <div class="rule" aria-hidden="true">────────────────────────────────────</div>
 
-    <h2>Resources</h2>
+    <h2 id="resources">Resources</h2>
     
     <ul>
         <li><a href="https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md">Full Gap Analysis (GitHub)</a> — Historical candidate inventory (56 locations, including 15 CPU-only candidates); not a current open-gap count</li>
         <li><a href="https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com">Mailing List Thread</a> — Community discussion on pgsql-hackers</li>
     </ul>
 
+    </main>
+
     <footer>
-        <div style="margin: 1.5em 0;">
+        <div class="footer-actions" style="margin: 1.5em 0;">
             <a href="https://github.com/NikolayS/gaps-wait-events">View source</a> · 
             <a href="https://github.com/NikolayS/gaps-wait-events/edit/master/index.html">Edit</a> · 
-            <button id="copy-llm" style="background: var(--bg); color: var(--accent); border: 1px solid var(--accent); padding: 0.3em 0.8em; font-family: inherit; cursor: pointer;">Copy for LLM</button>
+            <button type="button" id="copy-llm" style="background: var(--bg); color: var(--accent); border: 1px solid var(--accent); padding: 0.3em 0.8em; font-family: inherit; cursor: pointer;">Copy for LLM</button>
         </div>
         
         <script>
-            document.getElementById('copy-llm').addEventListener('click', function() {
-                var md = `# PostgreSQL Wait Events Coverage Gaps
-
-Source audit: 2026-11-18, PostgreSQL 19 stable 882f6b32f4ae42d32d63730985658040e88e7dc0.
-
-- Auth: 32 historical rows = 12 potentially blocking uninstrumented operations + 10 requiring library/platform validation + 5 rejected DNS claims + 5 removed RADIUS rows. This is not an exhaustive current gap count.
-- I/O: original 9 sites minus 2 COPY sites fixed in PG19 = 7 retained, plus 1 relation-file creation site = 8.
-- Relation-file create/open and unlink lack instrumentation; this applies to temp tables but is not a blanket statement about all DDL work.
-- CPU-bound compression and cryptography remain outside wait-event scope.
-- Logging may block on a collector pipe or stderr; not every backend log is a direct disk write.
-- WAL wait events include WRITE/FLUSH/REPLAY in IPC; WALSummarizer is the displayed LWLock event name.
-- GSoC 2026: the idea was on the ideas list but is not among the 7 Google-approved projects; the work remains open.
-
-Full audit and pinned evidence: https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md
-Historical analysis: https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md
-Website: https://gaps.wait.events/
-`;
-                navigator.clipboard.writeText(md).then(function() {
-                    var btn = document.getElementById('copy-llm');
-                    btn.textContent = 'Copied!';
+            (function() {
+                var md = [
+'# PostgreSQL wait events coverage gaps',
+'',
+'Source: https://gaps.wait.events/',
+'Source audit: 2026-11-18, PostgreSQL REL_19_STABLE 882f6b32f4ae42d32d63730985658040e88e7dc0 (REL_19_0 tag plus 3 commits that touch no cited file).',
+'Release status: PostgreSQL 19 is not GA. The latest announcement is 19 RC 2 (2026-11-12); the release is planned for 2026-11-19.',
+'These are source-level findings, not measured latency.',
+'',
+'## Why it matters',
+'Many tools draw wait_event IS NULL as CPU. NULL can also mean "waiting, but not instrumented". Show NULL as "CPU or unknown wait".',
+'',
+'## Authentication (https://gaps.wait.events/#authentication)',
+'32 historical rows = 12 potentially blocking uninstrumented operations + 10 that need library or platform validation + 5 rejected DNS claims + 5 removed RADIUS rows. This is not an exhaustive count of current gaps.',
+'- LDAP: SRV lookup, synchronous TLS, bind and search are candidates. Init and option calls are not network waits.',
+'- Ident: blocking connect/send/receive are uninstrumented. Address conversions are numeric-only, not DNS.',
+'- PAM: external auth and account calls are uninstrumented.',
+'- RADIUS: removed in PostgreSQL 19 (a1643d40), not instrumented.',
+'- GSSAPI/Kerberos: library work is uninstrumented; not every call contacts a KDC.',
+'- DNS: log_hostname reverse lookup can block, but before shared PGPROC setup, so it is not an ordinary active row in pg_stat_activity.',
+'',
+'## I/O (https://gaps.wait.events/#io)',
+'9 historical sites - 2 COPY sites fixed in PG19 (e05a24c2: COPY_FROM_READ, COPY_TO_WRITE) = 7 retained, + 1 relation-file creation site = 8.',
+'- Relation-file removal: unlink() at md.c:406, md.c:465, and mdunlinkfiletag() md.c:1966 (called from sync.c:231).',
+'- Recovery signal files: pg_fsync() at xlogrecovery.c:1027 and :1041.',
+'- Dynamic shared memory: fstat() at dsm_impl.c:279 and :850.',
+'- Relation-file creation: mdcreate() md.c:249 -> PathNameOpenFile(O_CREAT|O_EXCL) -> BasicOpenFilePerm() fd.c:1115, open() at :1121/:1123.',
+'',
+'## Relation files (https://gaps.wait.events/#relation-files)',
+'- CREATE TEMP TABLE / DROP TABLE churn exercises uninstrumented file creation and immediate unlink. Temp relations are unlinked at md.c:406/465, not via the deferred path.',
+'- Not counted in the 8: for permanent relations, mdunlinkfork() calls do_truncate() (md.c:393/420/455) -> pg_truncate() fd.c:724, a bare truncate() with no wait event. Temp relations skip it.',
+'- Catalog work, invalidation, lock waits and CPU work are separate. Do not wrap a whole DDL command in an I/O event.',
+'',
+'## Out of scope',
+'- Compression and cryptography are CPU work, not waits (rejected on pgsql-hackers).',
+'',
+'## Other notes',
+'- Logging can block on the collector pipe or stderr; not every backend log is a direct disk write.',
+'- PG19 adds WAIT_FOR_WAL_WRITE; WAIT_FOR_WAL_FLUSH/REPLAY/WRITE are in the IPC class. WALSummarizer is the LWLock event name.',
+'- GSoC 2026: the idea was on the ideas list (wiki revision 43116, 2026-03-31) but is not among the 7 approved projects. The work is open.',
+'',
+'## Links',
+'- Audit and evidence: https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md',
+'- Historical analysis: https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md',
+'- pgsql-hackers thread: https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com',
+''
+                ].join('\n');
+                var btn = document.getElementById('copy-llm');
+                function show(text) {
+                    btn.textContent = text;
                     setTimeout(function() { btn.textContent = 'Copy for LLM'; }, 2000);
+                }
+                function fallback() {
+                    var ta = document.createElement('textarea');
+                    ta.value = md;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    var ok = false;
+                    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+                    document.body.removeChild(ta);
+                    show(ok ? 'Copied!' : 'Copy failed');
+                }
+                btn.addEventListener('click', function() {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(md).then(function() { show('Copied!'); }, fallback);
+                    } else {
+                        fallback();
+                    }
                 });
-            });
+            })();
         </script>
         
         <!-- Theme Switcher Script -->
