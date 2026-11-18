@@ -7,7 +7,7 @@
     
     <!-- SEO & Meta Tags -->
     <title>PostgreSQL Wait Events Coverage Gaps | gaps.wait.events</title>
-    <meta name="description" content="Analysis of missing PostgreSQL wait event instrumentation. Learn about gaps in authentication, I/O operations, and observability. Part of GSoC 2026.">
+    <meta name="description" content="Analysis of missing PostgreSQL wait event instrumentation. Learn about gaps in authentication, I/O operations, and observability. Source audit updated for PostgreSQL 19.">
     <meta name="keywords" content="PostgreSQL, wait events, monitoring, observability, gaps, pgsql-hackers, GSoC, CPU, NULL wait_event, instrumentation">
     <meta name="author" content="Nikolay Samokhvalov (PostgresAI)">
     <meta name="robots" content="index, follow">
@@ -23,7 +23,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="PostgreSQL Wait Events Coverage Gaps">
-    <meta name="twitter:description" content="Analysis of missing PostgreSQL wait event instrumentation. Part of GSoC 2026.">
+    <meta name="twitter:description" content="Analysis of missing PostgreSQL wait event instrumentation. Source audit updated for PostgreSQL 19.">
     <meta name="twitter:creator" content="@postgres_ai">
     
     <!-- Favicon - ASCII clock/eye icon representing "wait" -->
@@ -429,39 +429,38 @@
     <h2>────────────────────────────────────</h2>
 
     <h2>Gap Categories</h2>
-
+    <p><strong>Source audit: 2026-11-18.</strong> PostgreSQL 19 stable at
+        <a href="https://github.com/postgres/postgres/commit/882f6b32f4ae42d32d63730985658040e88e7dc0">882f6b32f4ae</a>.
+        These are source-level findings, not measured latency claims. See the
+        <a href="https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md">audit and counting method</a>.</p>
     <div class="stats">
-        <div class="stat">
-            <div class="stat-number critical">32</div>
-            <div class="stat-label">Authentication<br>(Critical)</div>
-        </div>
-        <div class="stat">
-            <div class="stat-number warning">7</div>
-            <div class="stat-label">I/O Operations<br>(Required)</div>
-        </div>
+        <div class="stat"><div class="stat-number critical">27</div><div class="stat-label">Historical auth candidates<br>remaining after RADIUS removal</div></div>
+        <div class="stat"><div class="stat-number warning">8</div><div class="stat-label">I/O source locations<br>7 retained + relation creation</div></div>
     </div>
-
+    <p>The former 32 authentication locations were candidates, not 32 verified blocking waits.
+        Numeric address conversions, library initialization and option access must not be counted as confirmed network waits.</p>
     <div class="gap-category">
-        <h3><span class="critical">■</span> Authentication (Critical — 32 locations)</h3>
-        <p>Every authentication method has gaps that block logins without visibility:</p>
+        <h3><span class="critical">■</span> Authentication: open gaps and corrected claims</h3>
         <ul>
-            <li><strong>LDAP:</strong> 12 operations — DNS SRV lookups, TLS handshakes, binds, searches</li>
-            <li><strong>Ident:</strong> 8 operations — DNS lookups, TCP connections to ident server</li>
-            <li><strong>PAM:</strong> 2 operations — black box external auth (can invoke LDAP, AD, scripts)</li>
-            <li><strong>RADIUS:</strong> 5 operations — UDP auth without proper wait events</li>
-            <li><strong>GSSAPI/Kerberos:</strong> 1 operation — KDC server contact</li>
-            <li><strong>DNS lookups:</strong> 3 in auth + connection logging when <code>log_hostname=on</code></li>
+            <li><strong>LDAP:</strong> DNS SRV lookup, synchronous TLS, binds and search remain candidates for instrumentation. Initialization and option calls are not automatically network waits.</li>
+            <li><strong>Ident:</strong> blocking connect/send/receive remain uninstrumented. The address conversions use numeric-only flags, not DNS.</li>
+            <li><strong>PAM:</strong> external authentication and account-management calls remain uninstrumented; hostname lookup is conditional on <code>pam_use_hostname</code>.</li>
+            <li><del><strong>RADIUS:</strong> 5 historical candidates</del> <span class="done">REMOVED in PostgreSQL 19</span>, not instrumented: <a href="https://github.com/postgres/postgres/commit/a1643d40b308911cc725e62d3c5f7904b426aa09">a1643d40b</a>.</li>
+            <li><strong>GSSAPI/Kerberos:</strong> external-library work remains uninstrumented; do not assume every call contacts a KDC.</li>
+            <li><strong>DNS:</strong> connection hostname logging can block when <code>log_hostname=on</code>, but runs before shared PGPROC setup; it must not be described as an ordinary active CPU row in <code>pg_stat_activity</code>. Numeric-only auth error-message conversions are not DNS gaps.</li>
         </ul>
-        <p><em>Impact: During auth storms, backends appear "busy with CPU" when they're actually waiting on external services.</em></p>
     </div>
-
     <div class="gap-category">
-        <h3><span class="warning">■</span> I/O Operations (Required — 7 locations)</h3>
+        <h3><span class="warning">■</span> I/O operations: 8 identified source locations</h3>
         <ul>
-            <li><span style="text-decoration: line-through; opacity: 0.6;"><strong>COPY FROM/TO PROGRAM:</strong></span> <span class="done">✓ FIXED (2026-02-03)</span> — See <a href="#recently-added">Recently Added</a> section</li>
-            <li><strong>File operations:</strong> <code>unlink()</code> for table files, <code>fsync()</code> for signal files</li>
-            <li><strong>Dynamic shared memory:</strong> <code>fstat()</code> operations in parallel query</li>
+            <li><del><strong>COPY FROM/TO pipe/file/program read/write:</strong></del> <span class="done">FIXED in PostgreSQL 19</span> by <a href="https://github.com/postgres/postgres/commit/e05a24c2d4eab3dd76741dc6e6c18bb0584771c5">e05a24c</a>. This covers the two original read/write sites, not every subprocess lifecycle operation.</li>
+            <li><strong>Relation-file removal:</strong> three <code>unlink()</code> sites remain uninstrumented: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L406">md.c:406</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L465">465</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L1966">1966</a>.</li>
+            <li><strong>Recovery signal files:</strong> two <code>pg_fsync()</code> sites remain uninstrumented: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/access/transam/xlogrecovery.c#L1027">1027</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/access/transam/xlogrecovery.c#L1041">1041</a>.</li>
+            <li><strong>Dynamic shared memory:</strong> two <code>fstat()</code> sites remain uninstrumented: <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/ipc/dsm_impl.c#L279">279</a>, <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/ipc/dsm_impl.c#L850">850</a>.</li>
+            <li><strong>NEW: relation-file creation:</strong> <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/smgr/md.c#L249">mdcreate() at md.c:249</a> calls <code>PathNameOpenFile(... O_CREAT | O_EXCL)</code>; the underlying <a href="https://github.com/postgres/postgres/blob/882f6b32f4ae42d32d63730985658040e88e7dc0/src/backend/storage/file/fd.c#L1115">open()</a> has no wait-event wrapper.</li>
         </ul>
+        <p><strong>Why temporary tables matter:</strong> repeated <code>CREATE TEMP TABLE</code>/<code>DROP TABLE</code> exercises relation-file creation and immediate removal. These filesystem operations can block without a dedicated wait event. This is not a claim that all temporary-table work lacks instrumentation or that all elapsed time is I/O: catalog work, invalidation and real CPU execution are separate.</p>
+        <p><strong>PostgreSQL hacking opportunity:</strong> measure these filesystem paths and propose narrowly scoped creation/removal I/O wait events, including common wrappers and platform-specific behavior. Do not wrap an entire DDL command in an I/O event or treat CPU work as waiting.</p>
     </div>
 
     <div class="gap-category" style="opacity: 0.6;">
@@ -482,6 +481,10 @@
 
     <h2 id="recently-added"><span class="done">✓</span> Recently Added Wait Events</h2>
     
+    <p>PostgreSQL 19 also adds <code>WAIT_FOR_WAL_WRITE</code> and extends flush waiting to standbys
+        (<a href="https://github.com/postgres/postgres/commit/7a39f43d885b44a78f366aa50535944c4e38bdbb">7a39f43d</a>).
+        The <code>WAIT_FOR_WAL_*</code> events now belong to IPC, not Client
+        (<a href="https://github.com/postgres/postgres/commit/56fa044d15e8b06d84889f06f5def21a62fb86a3">56fa044d</a>).</p>
     <div class="highlight done">
         <p><strong>2026-02-03 — COPY FROM/TO pipe/file/program</strong> <em>(part of this gap analysis project)</em></p>
         <ul>
@@ -502,7 +505,7 @@
     <div class="highlight done">
         <p><strong>2025-11-05 — LSN Waiting Infrastructure</strong></p>
         <ul>
-            <li><code>WAIT_FOR_WAL_FLUSH</code> — "Waiting for WAL flush to reach a target LSN on a primary"</li>
+            <li><code>WAIT_FOR_WAL_FLUSH</code> — "Waiting for WAL flush to reach a target LSN on a primary or standby"</li>
             <li><code>WAIT_FOR_WAL_REPLAY</code> — "Waiting for WAL replay to reach a target LSN on a standby"</li>
             <li><code>WaitLSN</code> — LWLock for Wait-for-LSN state</li>
         </ul>
@@ -520,7 +523,7 @@
     <div class="highlight done">
         <p><strong>2024-01-02 — WAL Summarizer</strong></p>
         <ul>
-            <li><code>WALSummarizerLock</code> — LWLock for WAL summarizer</li>
+            <li><code>WALSummarizer</code> — LWLock for WAL summarizer</li>
         </ul>
         <p>Commit: <a href="https://github.com/postgres/postgres/commit/5c430f9d">5c430f9d</a></p>
     </div>
@@ -542,7 +545,7 @@
     
     <div class="highlight">
         <p><strong>Example:</strong> <code>log_min_duration_statement=0</code> with high TPS on non-fast disks</p>
-        <p>When logging all statements (duration=0), backends spend time writing to disk for every single query. This I/O lacks a wait event, so it appears as NULL → "CPU" in monitoring tools.</p>
+        <p>Logging overhead depends on the destination. A backend may block writing to the logging collector pipe or directly to stderr; the collector writes log files. These uninstrumented writes can appear as CPU or unknown wait, but not every backend log message is a direct disk write.</p>
         <p>The very act of observing (logging) changes what's being observed, and the gap in instrumentation makes it invisible.</p>
     </div>
 
@@ -555,14 +558,14 @@
     
     <p><strong>Update:</strong> A potential candidate has already expressed interest — details TBD.</p>
     
-    <p>If you're a student interested in PostgreSQL internals and observability, this is a great opportunity to contribute to a critical area of database monitoring.</p>
+    <p>Contributors can use the pinned source audit to evaluate remaining instrumentation work.</p>
 
     <h2>────────────────────────────────────</h2>
 
     <h2>Resources</h2>
     
     <ul>
-        <li><a href="https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md">Full Gap Analysis (GitHub)</a> — Detailed analysis with 56 specific code locations</li>
+        <li><a href="https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md">Full Gap Analysis (GitHub)</a> — Historical candidate inventory (56 locations, including 15 CPU-only candidates); not a current open-gap count</li>
         <li><a href="https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com">Mailing List Thread</a> — Community discussion on pgsql-hackers</li>
     </ul>
 
@@ -577,85 +580,19 @@
             document.getElementById('copy-llm').addEventListener('click', function() {
                 var md = `# PostgreSQL Wait Events Coverage Gaps
 
-## What Are Wait Events?
-PostgreSQL **wait events** provide insight into what a backend process is doing at any given moment. When a process is actively waiting on a resource (I/O, lock, network), PostgreSQL records the specific wait event. This allows monitoring tools to show where time is being spent.
+Source audit: 2026-11-18, PostgreSQL 19 stable 882f6b32f4ae42d32d63730985658040e88e7dc0.
 
-**Official Documentation:** https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW
+- Auth: 32 historical candidates minus 5 removed RADIUS sites = 27 retained candidates, NOT 27 confirmed waits. Numeric address conversions are not DNS; library init/options are not automatically blocking.
+- I/O: original 9 sites minus 2 COPY sites fixed in PG19 = 7 retained, plus 1 relation-file creation site = 8.
+- Relation-file create/open and unlink lack instrumentation; this applies to temp tables but is not a blanket statement about all DDL work.
+- CPU-bound compression and cryptography remain outside wait-event scope.
+- Logging may block on a collector pipe or stderr; not every backend log is a direct disk write.
+- WAL wait events include WRITE/FLUSH/REPLAY in IPC; WALSummarizer is the displayed LWLock event name.
 
-## The "Green CPU" Problem
-Many monitoring tools (AWS RDS Performance Insights, PASH Viewer, etc.) visualize \`wait_event IS NULL\` as green "CPU" time.
-
-But \`NULL\` doesn't always mean "CPU working" — it can also mean **"not instrumented yet."**
-
-## The Real Problem
-When a backend is stuck waiting on network I/O, external authentication, or other blocking operations without wait event coverage, monitoring tools incorrectly show it as green "CPU" activity.
-
-**Best practice:** Tools should visualize NULL as "CPU or unknown wait event" — [PostgresAI monitoring](https://postgres.ai/docs/monitoring) follows this convention.
-
-## Gap Categories
-
-### Authentication (Critical — 32 locations)
-Every authentication method has gaps that block logins without visibility:
-
-- **LDAP:** 12 operations — DNS SRV lookups, TLS handshakes, binds, searches
-- **Ident:** 8 operations — DNS lookups, TCP connections to ident server
-- **PAM:** 2 operations — black box external auth (can invoke LDAP, AD, scripts)
-- **RADIUS:** 5 operations — UDP auth without proper wait events
-- **GSSAPI/Kerberos:** 1 operation — KDC server contact
-- **DNS lookups:** 3 in auth + connection logging when \`log_hostname=on\`
-
-### I/O Operations (Required — 7 locations)
-- ~~COPY FROM/TO PROGRAM~~ ✓ FIXED (2026-02-03) — See Recently Added section
-- File operations: \`unlink()\` for table files, \`fsync()\` for signal files
-- Dynamic shared memory: \`fstat()\` operations in parallel query
-
-### Compression / Cryptography
-NOT APPLICABLE — CPU-bound operations should NOT be covered by wait events per community consensus.
-
-## Recently Added Wait Events
-
-### 2026-02-03 — COPY FROM/TO (part of this gap analysis project)
-- \`COPY_FROM_READ\` — "Waiting to read data from a pipe, a file or a program during COPY FROM"
-- \`COPY_TO_WRITE\` — "Waiting to write data to a pipe, a file or a program during COPY TO"
-
-### 2025-12-09 — Group Commit Delay
-- \`COMMIT_DELAY\` — "Waiting for commit delay before WAL flush"
-
-### 2025-11-05 — LSN Waiting Infrastructure
-- \`WAIT_FOR_WAL_FLUSH\` — "Waiting for WAL flush to reach a target LSN on a primary"
-- \`WAIT_FOR_WAL_REPLAY\` — "Waiting for WAL replay to reach a target LSN on a standby"
-
-### 2025-05-29 — Async I/O (io_uring)
-- \`AioUringCompletion\`
-
-### 2024-01-02 — WAL Summarizer
-- \`WALSummarizerLock\`
-
-### 2023-10-13 — Checkpoint Delay
-- \`CHECKPOINT_DELAY_COMPLETE\` — "Waiting for a backend that blocks a checkpoint from completing"
-- \`CHECKPOINT_DELAY_START\` — "Waiting for a backend that blocks a checkpoint from starting"
-
-## Observer Effect
-Example: \`log_min_duration_statement=0\` with high TPS on non-fast disks
-
-When logging all statements (duration=0), backends spend time writing to disk for every single query. This I/O lacks a wait event, so it appears as NULL → "CPU" in monitoring tools.
-
-The very act of observing (logging) changes what's being observed, and the gap in instrumentation makes it invisible.
-
-## GSoC 2026
-This project is proposed for Google Summer of Code 2026.
-
-**Update:** A potential candidate has already expressed interest — details TBD.
-
-## Resources
-- Full Gap Analysis (GitHub): https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md
-- Mailing List Thread: https://www.postgresql.org/message-id/flat/CAM527d9PkaSj-gNjLZqjJXnqaWTD8kHPtm2Yj8-1Gh_0pTRgDA%40mail.gmail.com
-- GSoC 2026 Proposal: https://wiki.postgresql.org/wiki/GSoC_2026#Wait_Event_Coverage_Improvements
-- Official Docs: https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW
-
----
-Analysis by Nikolay Samokhvalov (PostgresAI)
-GitHub: https://github.com/NikolayS/gaps-wait-events`;
+Full audit and pinned evidence: https://github.com/NikolayS/gaps-wait-events/blob/master/AUDIT-PG19.md
+Historical analysis: https://github.com/NikolayS/postgres/blob/claude/cpu-asterisk-wait-events-01CyiYYMMcFMovuqPqLNcp8T/WAIT_EVENTS_ANALYSIS.md
+Website: https://gaps.wait.events/
+`;
                 navigator.clipboard.writeText(md).then(function() {
                     var btn = document.getElementById('copy-llm');
                     btn.textContent = 'Copied!';
